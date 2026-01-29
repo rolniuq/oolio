@@ -1,8 +1,6 @@
-# 🍕 Oolio
+![Oolio Logo](https://www.oolio.com/hs-fs/hubfs/oolio-lettermark-primary.png?width=926&height=242&name=oolio-lettermark-primary.png)
 
 <div align="center">
-
-![Oolio Logo](https://via.placeholder.com/200x80/4A90E2/FFFFFF?text=Oolio)
 
 [![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=for-the-badge&logo=go)](https://golang.org)
 [![Gin](https://img.shields.io/badge/Gin-Web%20Framework-00A000?style=for-the-badge&logo=gin)](https://gin-gonic.com)
