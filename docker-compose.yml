@@ -1,0 +1,154 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: oolio_db
+    environment:
+      POSTGRES_DB: oolio_db
+      POSTGRES_USER: oolio
+      POSTGRES_PASSWORD: oolio_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    networks:
+      - oolio_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oolio -d oolio_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (for rate limiting and caching)
+  redis:
+    image: redis:7-alpine
+    container_name: oolio_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - oolio_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Go Backend API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: oolio_api
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: oolio
+      DB_PASSWORD: oolio_password
+      DB_NAME: oolio_db
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8080
+      API_KEY: apitest
+      COUPON_BASE_URL: https://orderfoodonline-files.s3.ap-southeast-2.amazonaws.com
+      REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: ""
+      GIN_MODE: release
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - oolio_network
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+
+  # React Frontend Web Application
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: oolio_web
+    environment:
+      REACT_APP_API_URL: http://localhost:8080
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    networks:
+      - oolio_network
+    restart: unless-stopped
+
+  # Database Migration Service (optional, use with --profile migration)
+  migrate:
+    image: migrate/migrate
+    container_name: oolio_migrate
+    command:
+      [
+        "-path",
+        "/migrations",
+        "-database",
+        "postgresql://oolio:oolio_password@db:5432/oolio_db?sslmode=disable",
+        "up",
+      ]
+    volumes:
+      - ./migrations:/migrations
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - oolio_network
+    profiles:
+      - migration
+
+  # Development API (use with --profile dev)
+  api-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: oolio_api_dev
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: oolio
+      DB_PASSWORD: oolio_password
+      DB_NAME: oolio_db
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8080
+      API_KEY: apitest
+      COUPON_BASE_URL: https://orderfoodonline-files.s3.ap-southeast-2.amazonaws.com
+      REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: ""
+      GIN_MODE: debug
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - oolio_network
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+    command: air -c .air.toml
+    profiles:
+      - dev
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  oolio_network:
+    driver: bridge

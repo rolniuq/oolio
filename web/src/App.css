@@ -1,0 +1,7 @@
+.App {
+  text-align: left;
+}
+
+.App .products-grid {
+  margin-right: 320px; /* Make space for fixed cart */
+}

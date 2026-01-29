@@ -1,0 +1,40 @@
+# Docker
+Dockerfile
+docker-compose.yml
+docker-compose.dev.yml
+
+# Docker volumes
+postgres_data/
+redis_data/
+logs/
+
+# Docker build cache
+.docker/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Coverage
+coverage.out
+coverage.html
+
+# Build artifacts
+bin/
+dist/
+build/
+web/node_modules
